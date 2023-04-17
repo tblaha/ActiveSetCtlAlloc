@@ -14,7 +14,7 @@ RM = rm -f
 .DEFAULT_GOAL = all
 
 all : main.c package
-	$(CC) ${CC_FLAGS} -o main.o main.c ../package/bin/solveActiveSet.a $(DEFINES) $(INCLUDE_FLAGS) $(LINK_FLAGS)
+	$(CC) ${CC_FLAGS} -o main.o main.c ../package/bin/solveActiveSet.so $(DEFINES) $(INCLUDE_FLAGS) $(LINK_FLAGS)
 
 package:
 	@cd ../package && make

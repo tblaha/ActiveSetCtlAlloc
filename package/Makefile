@@ -8,21 +8,22 @@ CC_FLAGS = -fstack-usage -fwrapv -fPIC $(WARN_FLAGS) $(DEBUG) $(OPTIM)
 LINK_FLAGS = -lm
 AR = ar
 ARFLAGS = ruvs
-PRODUCT = solveActiveSet.a
+PRODUCT = solveActiveSet.so
 BIN_DIR = ./bin
 INCLUDES = -Icommon/ -Ilib/
 SOURCES = solveActiveSet.c solveActiveSet_cg.c solveActiveSet_chol.c solveActiveSet_qr.c solveActiveSet_pprz.c common/setup_wls.c lib/chol_math.c lib/qr_updates.c lib/qr_wrapper.c lib/qr_solve/qr_solve.c lib/qr_solve/r8lib_min.c lib/sparse_math.c
 
-all: $(patsubst %, $(BIN_DIR)/%.o, $(basename $(SOURCES)))
-	$(AR) $(ARFLAGS) $(BIN_DIR)/$(PRODUCT) $?
+#all: $(patsubst %, $(BIN_DIR)/%.o, $(basename $(SOURCES)))
+#	$(AR) $(ARFLAGS) $(BIN_DIR)/$(PRODUCT) $?
+all: $(BIN_DIR)/$(PRODUCT)
 	$(CC) $(CC_FLAGS) -o $(BIN_DIR)/main.o main.c $(BIN_DIR)/$(PRODUCT) $(DEFINES) $(INCLUDES) $(LINK_FLAGS)
 
-$(BIN_DIR)/%.o : %.c
+$(BIN_DIR)/$(PRODUCT) : $(SOURCES)
 	@mkdir -p $(dir $@)
-	$(CC) -c $(CC_FLAGS) -o $@ $*.c $(DEFINES) $(DEBUG) $(WARN_FLAGS) $(INCLUDES)
+	$(CC) -shared $(CC_FLAGS) -o $@ $(DEFINES) $(DEBUG) $(WARN_FLAGS) $(INCLUDES) $^
 
 clean:
 	@rm -rf *.o
-	@rm -rf *.a
+	@rm -rf *.so
 	@rm -rf *.su
 	@rm -rf bin

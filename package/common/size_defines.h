@@ -12,8 +12,8 @@
 #define CA_N_C  (CA_N_U+CA_N_V)
 
 #ifdef TESTING_LSQ_PACKAGE
-	#define SINGLE
-	//#define DOUBLE
+	//#define SINGLE
+	#define DOUBLE
 #else
 	#define SINGLE
 #endif
