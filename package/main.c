@@ -8,13 +8,13 @@
 
 int main (int argc, char** argv)
 {
-	num_t A_col[CA_N_C*CA_N_U];
+	num_t A_col[CA_N_C*AS_N_U];
 	num_t b[CA_N_C];
-    num_t umin[CA_N_U];
-	num_t umax[CA_N_U];
+    num_t umin[AS_N_U];
+	num_t umax[AS_N_U];
 	bool updating = true;
-	num_t xs[CA_N_U];
-	int8_t Ws[CA_N_U];
+	num_t xs[AS_N_U];
+	int8_t Ws[AS_N_U];
 	int n_u = 6;
     int n_v = 4;
 	int iter;

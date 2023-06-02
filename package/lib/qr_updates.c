@@ -1,6 +1,15 @@
+/**
+ * Copyright (C) Till Blaha 2022-2023
+ * MAVLab -- Faculty of Aerospace Engineering -- Delft University of Techology
+ */
+
+/**
+ * @file qr_updates.c
+ * 
+ * @brief Implementations of qr_updates.h
+*/
 
 #include "qr_updates.h"
-#include "size_defines.h"
 #include "sparse_math.h"
 #include <math.h>
 #include <stdbool.h>
@@ -82,6 +91,16 @@ void qr_shift ( int n, int p, num_t** Q_ptr, num_t** R_ptr, int i, int j ) {
   }
 }
 
+void givens(num_t a, num_t b, num_t G[4]) {
+  num_t sigma = 1/hypotf(a, b);
+  num_t c = sigma * a;
+  num_t s = -sigma * b;
+  G[0] = c;
+  G[1] = s;
+  G[2] = -s;
+  G[3] = c;
+}
+
 void givens_left_apply(int p, num_t** A, num_t* G, int row1, int row2) {
   num_t temp;
   for (int i=0; i<p; i++) {
@@ -98,14 +117,4 @@ void givens_right_apply(int n, num_t** A, num_t* G, int col1, int col2) {
     A[i][col2] = A[i][col1]*G[2] + A[i][col2]*G[3];
     A[i][col1] = temp;
   }
-}
-
-void givens(num_t a, num_t b, num_t G[4]) {
-  num_t sigma = 1/hypotf(a, b);
-  num_t c = sigma * a;
-  num_t s = -sigma * b;
-  G[0] = c;
-  G[1] = s;
-  G[2] = -s;
-  G[3] = c;
 }

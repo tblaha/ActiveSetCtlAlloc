@@ -444,7 +444,7 @@ void dqrank ( num_t a[], int lda, int m, int n, num_t tol, int *kr,
     jpvt[i] = 0;
   }
 
-  num_t work[CA_N_U];
+  num_t work[AS_N_U];
   /*work = ( num_t * ) malloc ( n * sizeof ( num_t ) );*/
   job = 1;
 
@@ -1607,12 +1607,12 @@ void qr_solve ( int m, int n, num_t a[], num_t b[], num_t x[]  )
   int lda;
   num_t tol;
 
-  num_t a_qr[CA_N_C*CA_N_U]; // changed from VLA
+  num_t a_qr[CA_N_C*AS_N_U]; // changed from VLA
   r8mat_copy_new ( m, n, a, a_qr );
   lda = m;
   tol = r8_epsilon ( ) / r8mat_amax ( m, n, a_qr );
-  int jpvt[CA_N_U];
-  num_t qraux[CA_N_U];
+  int jpvt[AS_N_U];
+  num_t qraux[AS_N_U];
   num_t r[CA_N_C];
   itask = 1;
 

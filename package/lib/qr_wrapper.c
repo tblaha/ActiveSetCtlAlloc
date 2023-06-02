@@ -1,26 +1,36 @@
+/**
+ * Copyright (C) Till Blaha 2022-2023
+ * MAVLab -- Faculty of Aerospace Engineering -- Delft University of Techology
+ */
+
+/**
+ * @file qr_wrapper.c
+ * 
+ * @brief Implementations of qr_wrapper.h
+*/
+
 #include "qr_wrapper.h"
 #include "qr_solve/qr_solve.h"
-#include "size_defines.h"
 #include <math.h>
 #include <string.h>
 
 
 void qr_wrapper(int m, int n, int perm[], num_t** A, num_t** Q, num_t** R) {
-  num_t in[CA_N_C*CA_N_U]; // changed from VLA...
+  num_t in[AS_N_C*AS_N_U]; // changed from VLA...
   int k = 0;
   for (int j = 0; j < n; j++) {
     for (int i = 0; i < m; i++) {
       in[k++] = A[i][perm[j]];
     }
   }
-  int jpvt[CA_N_U];
+  int jpvt[AS_N_U];
   //int kr;
-  num_t tau[CA_N_U];
-  num_t work[CA_N_U];
+  num_t tau[AS_N_U];
+  num_t work[AS_N_U];
   int job = 0;
 
   dqrdc ( in, m, m, n, tau, jpvt, work, job );
-  num_t Qout[CA_N_C*CA_N_C];
+  num_t Qout[AS_N_C*AS_N_C];
 
   dorgqr ( m, n, in, Qout, tau);
 
@@ -57,19 +67,11 @@ void qr_wrapper(int m, int n, int perm[], num_t** A, num_t** Q, num_t** R) {
 
 int dorgqr ( int m, int n, const num_t a[], num_t q[], num_t tau[])
 {
-  /*
-  The matrix Q is represented as a product of elementary reflectors
-
-     Q = H(0) H(1) . . . H(k), where k = min(m,n)-1.
-
-  Each H(i) has the form
-
-     H(i) = I - tau * v * v**T
-
-  where tau is a real scalar, and v is a real vector with
-  v(0:i-1) = 0 and v(i) = 1; v(i+1:m-1) = A(i+1:m-1,i), and tau = TAU(i).
-  */
-  memset(q, 0.0f, sizeof(num_t)*m*m);
+  // initialize to 0
+  // TODO: is this necessary?
+  for (int i = 0; i < m*m; i++) {
+    q[i] = 0.;
+  }
   for (int k=0; k<m; k++) {
     // start with identity
     q[k + k*m] = 1.0F;

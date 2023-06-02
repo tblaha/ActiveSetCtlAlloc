@@ -11,8 +11,7 @@
 #ifndef QR_SOLVE_H
 #define QR_SOLVE_H
 
-#include "size_defines.h"
-// #include "generated/airframe.h"
+#include "solveActiveSet.h"
 
 
 void daxpy ( int n, num_t da, num_t dx[], int incx, num_t dy[], int incy );

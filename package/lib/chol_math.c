@@ -5,16 +5,6 @@
 #include <math.h>
 #include <stdint.h>
 
-//#define DEBUG
-
-/** Cholesky decomposition
- *
- * http://rosettacode.org/wiki/Cholesky_decomposition#C
- *
- * @param out pointer to the output array [n x n]
- * @param in pointer to the input array [n x n]
- * @param n dimension of the matrix
- */
 void pprz_cholesky_float(num_t **out, num_t **in, num_t* inv_diag, int n)
 {
   int i, j, k;
@@ -40,7 +30,7 @@ void cholesky_solve(num_t **L, num_t* inv_diag, int n, num_t *b, num_t *x) {
 	int j,k;
 	num_t t;
 
-    for(j = 0 ; j < n ; j++) { // solve Ly=B
+    for(j = 0 ; j < n ; j++) { // solve Ly=b
         t = b[j];
         for(k = j - 1 ; k >= 0 ; k--)
             t -= L[j][k] * x[k];
@@ -63,11 +53,7 @@ void cholup(num_t** L, int i1, int i2)
 
     for (int k=i1; k<i2; k++) {
         num_t r;
-        #ifdef DOUBLE
-        r = hypot(L[k][k], L[k][i1-1]);
-        #else
-        r = hypotf(L[k][k], L[k][i1-1]);
-        #endif
+        r = hypot(L[k][k], L[k][i1-1]); // (a**2 + b**2)^.5 avoiding overflows
         num_t Lkkinv = 1.0 / L[k][k];
         num_t c = r * Lkkinv;
         num_t cinv = 1/c;
@@ -118,13 +104,7 @@ void choladd(num_t** L, int nf, num_t* inv_diag, num_t** H, int* perm, int f)
         L21L21T += L[nf][j]*L[nf][j];
     }
 
-    #ifdef DOUBLE
     L[nf][nf] = sqrt(H[perm[f]][perm[f]] - L21L21T);
-    #else
-    L[nf][nf] = sqrtf(H[perm[f]][perm[f]] - L21L21T);
-    #endif
-
     inv_diag[nf] = 1.0 / L[nf][nf];
-
 }
 

@@ -7,17 +7,17 @@
 #define N_CASES 1000
 
 typedef struct TestCase {
-	num_t JG[CA_N_V*CA_N_U];
-	num_t Wv[CA_N_V];
-   num_t Wu[CA_N_U];
-   num_t v[CA_N_V];
-	num_t lb[CA_N_U];
-	num_t ub[CA_N_U];
-	num_t u0[CA_N_U];
-	num_t up[CA_N_U];
-	num_t us[CA_N_U];
+	num_t JG[AS_N_V*AS_N_U];
+	num_t Wv[AS_N_V];
+   num_t Wu[AS_N_U];
+   num_t v[AS_N_V];
+	num_t lb[AS_N_U];
+	num_t ub[AS_N_U];
+	num_t u0[AS_N_U];
+	num_t up[AS_N_U];
+	num_t us[AS_N_U];
 	num_t res[CA_N_C];
-	// int W[CA_N_U]; // TODO
+	// int W[AS_N_U]; // TODO
 	int n_u;
 	int n_v;
 	bool updating;

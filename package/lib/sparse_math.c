@@ -1,8 +1,16 @@
+/**
+ * Copyright (C) Till Blaha 2022-2023
+ * MAVLab -- Faculty of Aerospace Engineering -- Delft University of Techology
+ */
+
+/**
+ * @file sparse_math.c
+ * 
+ * @brief Implementations of sparse_math.h
+*/
 
 #include "sparse_math.h"
-#include "size_defines.h"
 #include <stdbool.h>
-
 
 void backward_tri_solve(int n, num_t** A, const num_t* b, num_t* x) {
     if (n < 1)

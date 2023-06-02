@@ -101,9 +101,9 @@ void qr_solve_wrapper_pprz(int m, int n, num_t** A, num_t* b, num_t* x) {
  *
  * @return Number of *iterations, -1 upon failure
  */
-int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C],
-  const num_t umin[CA_N_U], const num_t umax[CA_N_U], num_t us[CA_N_U],
-  int8_t Ws[CA_N_U], bool updating, int imax, const int n_u, const int n_v,
+int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C],
+  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
+  int8_t Ws[AS_N_U], bool updating, int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[])
 {
   (void)(updating);
@@ -122,8 +122,8 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
     }
   }
 
-  num_t A[CA_N_C][CA_N_U];
-  num_t A_free[CA_N_C][CA_N_U];
+  num_t A[CA_N_C][AS_N_U];
+  num_t A_free[CA_N_C][AS_N_U];
 
   // Create a pointer array to the rows of A_free
   // such that we can pass it to a function
@@ -138,21 +138,21 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
     }
   }
 
-  // num_t b[CA_N_C];
+  // num_t b[AS_N_C];
   num_t d[CA_N_C];
-  num_t us_prev[CA_N_U];
+  num_t us_prev[AS_N_U];
 
-  int free_index[CA_N_U];
-  int free_index_lookup[CA_N_U];
+  int free_index[AS_N_U];
+  int free_index_lookup[AS_N_U];
   int free_chk = -1;
 
   bool nan_found = false;
-  num_t p_free[CA_N_U];
-  num_t p[CA_N_U];
-  int infeasible_index[CA_N_U]; /*UNUSED; whatever this means */
+  num_t p_free[AS_N_U];
+  num_t p[AS_N_U];
+  int infeasible_index[AS_N_U]; /*UNUSED; whatever this means */
   (void)(infeasible_index);
   int n_infeasible = 0;
-  num_t lambda[CA_N_U];
+  num_t lambda[AS_N_U];
 
   memset(free_index_lookup, -1, n_u * sizeof(int));
 
@@ -220,7 +220,7 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
     
     // check limits
     n_infeasible = 0;
-    int8_t limits_viol[CA_N_U];
+    int8_t limits_viol[AS_N_U];
     check_limits_tol(n_u, TOL, us, umin, umax, limits_viol, 0);
     for (int i = 0; i < n_u; i++) {
       if (limits_viol[i] != 0)
@@ -265,7 +265,7 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
           if ((*iter) <= RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
-        exit_code = ALLOC_SUCCESS;
+        exit_code = AS_SUCCESS;
         break;
       }
     } else {

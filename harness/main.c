@@ -16,22 +16,22 @@
 static void executeSolution(
     int n_v,
     int n_u,
-    num_t JG[CA_N_V*CA_N_U],
-    num_t Wv[CA_N_V],
-    num_t Wu[CA_N_U],
-    num_t up[CA_N_U],
-    num_t dv[CA_N_V],
-    num_t lb[CA_N_U],
-    num_t ub[CA_N_U],
-    num_t u0[CA_N_U],
+    num_t JG[AS_N_V*AS_N_U],
+    num_t Wv[AS_N_V],
+    num_t Wu[AS_N_U],
+    num_t up[AS_N_U],
+    num_t dv[AS_N_V],
+    num_t lb[AS_N_U],
+    num_t ub[AS_N_U],
+    num_t u0[AS_N_U],
     bool updating,
     activeSetAlgoChoice choice,
     num_t theta,
     num_t cond_bound,
-    int8_t Ws[CA_N_U],
-    num_t us[CA_N_U],
+    int8_t Ws[AS_N_U],
+    num_t us[AS_N_U],
     bool compute_errors,
-    num_t us_gt[CA_N_U],
+    num_t us_gt[AS_N_U],
     num_t* v_gt_norm,
     num_t* us_gt_norm,
     num_t* v_rel_error,
@@ -41,10 +41,10 @@ static void executeSolution(
     int* iter
 ) 
 {
-  num_t A[CA_N_C*CA_N_U];
+  num_t A[CA_N_C*AS_N_U];
   num_t b[CA_N_C];
   num_t gamma;
-  int8_t Ws_use[CA_N_U];
+  int8_t Ws_use[AS_N_U];
 
   for (int i=0; i<n_u; i++) {
     us[i] = u0[i];
@@ -157,8 +157,8 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
   fill_cases(test_cases);
 
   // predefine arrays
-  int8_t Ws[CA_N_U] = {1, 0, -1, 1, 0, 0};
-  memset(Ws, 0, sizeof(int8_t)*CA_N_U);
+  int8_t Ws[AS_N_U] = {1, 0, -1, 1, 0, 0};
+  memset(Ws, 0, sizeof(int8_t)*AS_N_U);
 
   // global settings
   //num_t theta = 1.5e-3 * sqrt(1e-4);  // works: 1.5e-3 * 1e0
@@ -169,8 +169,8 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
   num_t max_us_error = 0.0F;
   num_t max_perturb = 0.0F;
   num_t avg_perturb = 0.0F;
-  num_t us_algo[CA_N_U];
-  num_t us_algo_perturb[CA_N_U];
+  num_t us_algo[AS_N_U];
+  num_t us_algo_perturb[AS_N_U];
   int idx;
   num_t perturb_frac = 0.01;
 

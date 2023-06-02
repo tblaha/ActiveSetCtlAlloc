@@ -64,9 +64,9 @@
  *
  * @return 0: exact solution found. 1: imax hit, solution not optimal
  */
-int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C],
-  const num_t umin[CA_N_U], const num_t umax[CA_N_U], num_t us[CA_N_U],
-  int8_t Ws[CA_N_U], bool updating, int imax, const int n_u, const int n_v,
+int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C],
+  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
+  int8_t Ws[AS_N_U], bool updating, int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[])
 {
 
@@ -88,9 +88,9 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
     }
   }
 
-  num_t A[CA_N_C][CA_N_U];
+  num_t A[CA_N_C][AS_N_U];
   num_t Q[CA_N_C][CA_N_C];
-  num_t R[CA_N_C][CA_N_U];
+  num_t R[CA_N_C][AS_N_U];
 
   // Create a pointer array to the rows of A
   // such that we can pass it to a function
@@ -103,7 +103,7 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
     R_ptr[i] = R[i];
   }
 
-  int permutation[CA_N_U]; memset(permutation, 0, sizeof(int)*n_u);
+  int permutation[AS_N_U]; memset(permutation, 0, sizeof(int)*n_u);
   (*n_free) = 0;
   uint8_t i_bnd = 0;
   for (i = 0; i < n_u; i++) {
@@ -130,14 +130,14 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
   print_debug(A_ptr, Q_ptr, R_ptr, &n_u, &n_c);
   #endif
 
-  num_t q[CA_N_U];
-  num_t z[CA_N_U];
+  num_t q[AS_N_U];
+  num_t z[AS_N_U];
   bool nan_found = false;
 
   // -------------- Start loop ------------
   *iter = 0;
   while (++(*iter) <= imax) {
-    num_t c[CA_N_U];
+    num_t c[AS_N_U];
     for (i=0; i < (*n_free); i++) {
       c[i] = 0;
       for (j=0; j < n_c; j++) {
@@ -145,7 +145,7 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
       }
     }
 
-    num_t u_bound_perm[CA_N_U];
+    num_t u_bound_perm[AS_N_U];
     for (i=0; i < n_u - (*n_free); i++) {
       if (Ws[permutation[i+(*n_free)]] > 0)
         u_bound_perm[i] = umax[permutation[i+(*n_free)]];
@@ -182,7 +182,7 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
     }
 
     uint8_t n_violated = 0;
-    int8_t W_temp[CA_N_U];
+    int8_t W_temp[AS_N_U];
     n_violated = check_limits_tol((*n_free), TOL, z, umin, umax, W_temp, permutation);
 
     if (!n_violated) {
@@ -195,11 +195,11 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
         if ((*iter) <= RECORD_COST_N)
           costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
-        exit_code = ALLOC_SUCCESS;
+        exit_code = AS_SUCCESS;
         break;
       } else {
         // active constraints, check for optimality
-        num_t d[CA_N_U];
+        num_t d[AS_N_U];
         for (i=(*n_free); i < n_u; i++) {
           d[i] = 0;
           for (j=0; j < n_c; j++) {
@@ -213,7 +213,7 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
           }
         }
 
-        num_t lambda_perm[CA_N_U];
+        num_t lambda_perm[AS_N_U];
         uint8_t f_free = 0;
         num_t maxlam = -INFINITY;
         for (i=(*n_free); i<n_u; i++) {
@@ -233,7 +233,7 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
           if ((*iter) <= RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
-          exit_code = ALLOC_SUCCESS;
+          exit_code = AS_SUCCESS;
           break; // feasible and optimal
         }
 
@@ -298,9 +298,6 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
       }
 
       qr_shift(n_c, n_u, Q_ptr, R_ptr, (*n_free)-1, f_bound);
-      #ifdef debug_qr
-      print_debug(A_ptr, Q_ptr, R_ptr, &n_u, &n_c);
-      #endif
 
       Ws[i_a] = i_s;
       uint8_t first_val = permutation[f_bound];
@@ -321,34 +318,3 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C]
 
   return exit_code;
 }
-
-#ifdef debug_qr
-void print_debug(num_t** A_ptr, num_t** Q_ptr, num_t** R_ptr, const int* n_u, const int* n_c) {
-  printf("A_c = [");
-  for (int i = 0; i < *n_c; i++) {
-    for (int j = 0; j < *n_u; j++) {
-      printf("%f ", A_ptr[i][j]);
-    }
-    printf(";\n");
-  }
-  printf("];\n\n");
-
-  printf("Q_c = [");
-  for (int i = 0; i < *n_c; i++) {
-    for (int j = 0; j < *n_c; j++) {
-      printf("%f ", Q_ptr[i][j]);
-    }
-    printf(";\n");
-  }
-  printf("];\n\n");
-
-  printf("R_c = [");
-  for (int i = 0; i < *n_c; i++) {
-    for (int j = 0; j < *n_u; j++) {
-      printf("%f ", R_ptr[i][j]);
-    }
-    printf(";\n");
-  }
-  printf("];\n\n");
-}
-#endif

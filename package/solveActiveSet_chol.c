@@ -1,29 +1,26 @@
 #include "solveActiveSet.h"
-#include "setup_wls.h"
+#include "setupWLS.h"
 #include "chol_math.h"
-#include "size_defines.h"
 #include "sparse_math.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 //#define DEBUG
 
 //#define TRUNCATE_COST
-#define RTOL 1e-7
-#define CTOL 1e-7
 
-int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_C],
-  const num_t umin[CA_N_U], const num_t umax[CA_N_U], num_t us[CA_N_U],
-  int8_t Ws[CA_N_U], bool updating, int imax, const int n_u, const int n_v,
+activeSetExitCode solveActiveSet_chol(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
+  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
+  int8_t Ws[AS_N_U], unsigned int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[])
 {
-  
-  (void)(updating);
 
   if(!imax) imax = 100;
 
-  int8_t exit_code = ALLOC_ITER_LIMIT;
+  activeSetExitCode exit_code = ALLOC_ITER_LIMIT;
 
   int n_c = n_u + n_v;
   uint8_t i;
@@ -37,23 +34,23 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
     }
   }
 
-  num_t A[CA_N_C][CA_N_U];
-  num_t H_perm[CA_N_U][CA_N_U];
-  num_t H[CA_N_U][CA_N_U];
-  num_t L[CA_N_U][CA_N_U];
+  num_t A[AS_N_C][AS_N_U];
+  num_t H_perm[AS_N_U][AS_N_U];
+  num_t H[AS_N_U][AS_N_U];
+  num_t L[AS_N_U][AS_N_U];
 
   // Create a pointer array to the rows of A
   // such that we can pass it to a function
-  num_t * A_ptr[CA_N_C];
-  num_t * H_perm_ptr[CA_N_U];
-  num_t * H_ptr[CA_N_U];
-  num_t * L_ptr[CA_N_U];
+  num_t * A_ptr[AS_N_C];
+  num_t * H_perm_ptr[AS_N_U];
+  num_t * H_ptr[AS_N_U];
+  num_t * L_ptr[AS_N_U];
   for(i = 0; i < n_c; i++) {
     A_ptr[i] = A[i];
     if (i < n_u) { H_perm_ptr[i] = H_perm[i]; H_ptr[i] = H[i]; L_ptr[i] = L[i]; }
   }
 
-  int permutation[CA_N_U]; memset(permutation, 0, sizeof(int)*n_u);
+  int permutation[AS_N_U]; memset(permutation, 0, sizeof(int)*n_u);
   (*n_free) = 0;
   uint8_t i_bnd = 0;
   for (i = 0; i < n_u; i++) {
@@ -75,7 +72,7 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
   }
 
   // initial factorisation
-  int dummy[CA_N_U];
+  int dummy[AS_N_U];
   for (i = 0; i < n_u; i++)
     dummy[i] = i;
 
@@ -98,7 +95,7 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
   printf("\n");
   #endif
 
-  num_t inv_diag[CA_N_U];
+  num_t inv_diag[AS_N_U];
   pprz_cholesky_float(L_ptr, H_perm_ptr, inv_diag, n_u);
 
   // debug output
@@ -114,8 +111,8 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
   #endif
 
 
-  num_t q[CA_N_U];
-  num_t z[CA_N_U];
+  num_t q[AS_N_U];
+  num_t z[AS_N_U];
   bool nan_found = false;
 
   // -------------- Start loop ------------
@@ -124,7 +121,7 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
   num_t prev_cost = INFINITY;
 #endif
   while (++(*iter) <= imax) {
-    num_t beta[CA_N_U];
+    num_t beta[AS_N_U];
     for (i=0; i<(*n_free); i++) {
       beta[i] = 0;
       for (j=(*n_free); j<n_u; j++)
@@ -172,7 +169,7 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
     }
 
     uint8_t n_violated = 0;
-    int8_t W_temp[CA_N_U];
+    int8_t W_temp[AS_N_U];
     n_violated = check_limits_tol((*n_free), TOL, z, umin, umax, W_temp, permutation);
 
     if (!n_violated) {
@@ -186,16 +183,16 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
         if ((*iter) <= RECORD_COST_N)
           costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
-        exit_code = ALLOC_SUCCESS;
+        exit_code = AS_SUCCESS;
         break;
       } else {
         // active constraints, check for optimality
 
-        num_t lambda_perm[CA_N_U];
+        num_t lambda_perm[AS_N_U];
         uint8_t f_free = 0;
         num_t maxlam = -INFINITY;
 
-        num_t r[CA_N_C];
+        num_t r[AS_N_C];
         num_t r_sq = 0.;
         // dense part
         for (i = 0; i<n_v; i++) {
@@ -246,7 +243,7 @@ int8_t solveActiveSet_chol(const num_t A_col[CA_N_C*CA_N_U], const num_t b[CA_N_
           if ((*iter) <= RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
-          exit_code = ALLOC_SUCCESS;
+          exit_code = AS_SUCCESS;
           break; // constraints hit, but optimal
         }
 
