@@ -1,6 +1,5 @@
 // This file was autogeneratd from c_testcases.m
 #include <stdbool.h>
-#include "size_defines.h"
 
 #ifndef TEST_CASES_H
 #define TEST_CASES_H

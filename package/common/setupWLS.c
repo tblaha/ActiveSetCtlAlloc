@@ -98,7 +98,7 @@ void setupWLS_b(
 }
 
 void gamma_estimator(
-    const int n, const num_t** A2, const num_t cond_target,
+    const int n, num_t** A2, const num_t cond_target,
     num_t* gamma, num_t* max_sig){
     /*
     % returns gamma to meet upper bound on condition number. Should run in
@@ -122,7 +122,7 @@ void gamma_estimator(
 }
 
 void cond_estimator(
-    const int d, const num_t** A2, const num_t min_diag2,
+    const int d, num_t** A2, const num_t min_diag2,
     num_t* cond_est, num_t* max_sig){
     /*
     % returns upper bound on condition number of A matrix. Should run in

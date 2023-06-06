@@ -39,7 +39,6 @@
  */
 
 #include "solveActiveSet.h"
-#include "size_defines.h"
 #include <stdio.h>
 /*#include "std.h"*/
 #include <inttypes.h>
@@ -101,16 +100,20 @@ void qr_solve_wrapper_pprz(int m, int n, num_t** A, num_t* b, num_t* x) {
  *
  * @return Number of *iterations, -1 upon failure
  */
-int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C],
+activeSetExitCode solveActiveSet_qr_naive(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
   const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], bool updating, int imax, const int n_u, const int n_v,
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[])
 {
-  (void)(updating);
+
+#ifndef AS_RECORD_COST
+  (void) costs;
+#endif
 
   if(!imax) imax = 100;
 
-  int8_t exit_code = ALLOC_ITER_LIMIT;
+  int8_t exit_code = AS_ITER_LIMIT;
 
   int n_c = n_u+n_v;
 
@@ -122,12 +125,12 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_
     }
   }
 
-  num_t A[CA_N_C][AS_N_U];
-  num_t A_free[CA_N_C][AS_N_U];
+  num_t A[AS_N_C][AS_N_U];
+  num_t A_free[AS_N_C][AS_N_U];
 
   // Create a pointer array to the rows of A_free
   // such that we can pass it to a function
-  num_t * A_free_ptr[CA_N_C];
+  num_t * A_free_ptr[AS_N_C];
   for(int i = 0; i < n_c; i++)
     A_free_ptr[i] = A_free[i];
 
@@ -139,7 +142,7 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_
   }
 
   // num_t b[AS_N_C];
-  num_t d[CA_N_C];
+  num_t d[AS_N_C];
   num_t us_prev[AS_N_U];
 
   int free_index[AS_N_U];
@@ -214,7 +217,7 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_
       us[free_index[i]] += p_free[i];
     }
     if (nan_found) {
-      exit_code = ALLOC_NAN_FOUND_Q;
+      exit_code = AS_NAN_FOUND_Q;
       break;
     }
     
@@ -261,8 +264,8 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_
         }
       }
       if (break_flag) {
-#ifdef RECORD_COST
-          if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+          if ((*iter) <= AS_RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
         exit_code = AS_SUCCESS;
@@ -305,7 +308,7 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_
         }
       }
       if (nan_found) {
-        exit_code = ALLOC_NAN_FOUND_US;
+        exit_code = AS_NAN_FOUND_US;
         break;
       }
 
@@ -323,13 +326,13 @@ int8_t solveActiveSet_pprz(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_
       free_index_lookup[id_alpha] = -1;
     }
 
-#ifdef RECORD_COST
-    if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+    if ((*iter) <= AS_RECORD_COST_N)
       costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
 
   }
-  if (exit_code == ALLOC_ITER_LIMIT)
+  if (exit_code == AS_ITER_LIMIT)
     (*iter)--;
 
   return exit_code;

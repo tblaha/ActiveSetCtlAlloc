@@ -69,7 +69,7 @@ static void executeSolution(
 
   //printf("%f\n", gamma);
 
-  num_t costs[RECORD_COST_N];
+  num_t costs[AS_RECORD_COST_N];
   solveActiveSet(
     A,
     b,

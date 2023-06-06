@@ -20,30 +20,28 @@
 #endif
 
 #ifndef AS_N_U
-#warning "AS_N_U not defined. Assuming 20"
-#define AS_N_U 20
+#error "AS_N_U must be defined."
 #endif
 
 #ifndef AS_N_V
-#warning "AS_N_V not defined. Assuming 6"
-#define AS_N_V 6
+#error "AS_N_V must be defined."
 #endif
 
 #define AS_N_C (AS_N_U+AS_N_V)
 
-#if defined(RECORD_COST) && !defined RECORD_COST_N
-#define RECORD_COST_N 15
+#if defined(AS_RECORD_COST) && !defined AS_RECORD_COST_N
+#define AS_RECORD_COST_N 15
 #endif
 
-#if defined(RECORD_COST) && !defined RTOL
+#if defined(AS_COST_TRUNCATE) && !defined RTOL
 #define RTOL 1e-7
 #endif
 
-#if defined(RECORD_COST) && !defined CTOL
+#if defined(AS_COST_TRUNCATE) && !defined CTOL
 #define CTOL 1e-7
 #endif
 
-#ifdef USE_SINGLE_FLOAT
+#ifdef AS_SINGLE_FLOAT
 typedef float num_t;
 #define TOL 1e-4
 #else
@@ -52,19 +50,19 @@ typedef double num_t;
 #endif
 
 typedef enum {
-  ALLOC_SUCCESS = 0,
-  ALLOC_ITER_LIMIT = 1,
-  ALLOC_COST_BELOW_TOL = 2,
-  ALLOC_COST_PLATEAU = 3,
-  ALLOC_NAN_FOUND_Q = 4,
-  ALLOC_NAN_FOUND_US = 5,
+  AS_SUCCESS = 0,
+  AS_ITER_LIMIT = 1,
+  AS_COST_BELOW_TOL = 2,
+  AS_COST_PLATEAU = 3,
+  AS_NAN_FOUND_Q = 4,
+  AS_NAN_FOUND_US = 5,
   } activeSetExitCode;
 
 typedef enum {
-  QR_NAIVE = 0, // mostly previous PPRZ
-  QR = 1,
-  CHOL = 2,
-  CG = 3,
+  AS_QR_NAIVE = 0, // mostly previous PPRZ
+  AS_QR = 1,
+  AS_CHOL = 2,
+  AS_CG = 3,
   } activeSetAlgoChoice;
 
 /**
@@ -84,62 +82,51 @@ typedef enum {
  * @param n_v Such that n_u+n_v is length of b
  * @param iter On exit: number of active-set iterations performed
  * @param n_free On exit: number of free variables at iterate us
- * @param costs if RECORD_COST defined: cost at first RECORD_COST_N iterations
+ * @param costs if AS_RECORD_COST defined: cost at first AS_RECORD_COST_N iterations
  * 
  * @return 0 if success us is true solution, >0 if error. See activeSetExitCode
  */
 typedef activeSetExitCode (*activeSetAlgo)(
   const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
   const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], unsigned int imax, const int n_u, const int n_v,
-  int *iter, int *n_free, num_t costs[RECORD_COST_N]);
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
+  int *iter, int *n_free, num_t costs[]);
+
+activeSetExitCode solveActiveSet_qr_naive(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
+  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
+  int *iter, int *n_free, num_t costs[]);
+activeSetExitCode solveActiveSet_qr(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
+  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
+  int *iter, int *n_free, num_t costs[]);
+activeSetExitCode solveActiveSet_chol(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
+  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
+  int *iter, int *n_free, num_t costs[]);
+activeSetExitCode solveActiveSet_cg(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
+  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
+  int *iter, int *n_free, num_t costs[]);
 
 /**
  * @brief Gateway function the allows switching 
  * 
  * Usage example:
  * activeSetExitCode alloc_result;
- * alloc_result = solveActiveSet(QR)(A_col, b, ...);
+ * alloc_result = solveActiveSet(AS_QR)(A_col, b, ...);
  * 
  * @param choice Which algorithm return
  * 
  * @return pointer to a activeSetAlgo
  */
-activeSetAlgo solveActiveSet(activeSetAlgoChoice choice) {
-    switch (choice) {
-        case QR_NAIVE:
-            return &solveActiveSet_qr_naive;
-        case CHOL:
-            return &solveActiveSet_chol;
-        case CG:
-            return &solveActiveSet_cg;
-        default:
-            return &solveActiveSet_qr;
-    }
-};
+activeSetAlgo solveActiveSet(activeSetAlgoChoice choice);
 
-activeSetExitCode solveActiveSet_qr_naive(
-  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
-  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], unsigned int imax, const int n_u, const int n_v,
-  int *iter, int *n_free, num_t costs[]);
-activeSetExitCode solveActiveSet_qr(
-  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
-  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], unsigned int imax, const int n_u, const int n_v,
-  int *iter, int *n_free, num_t costs[]);
-activeSetExitCode solveActiveSet_chol(
-  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
-  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], unsigned int imax, const int n_u, const int n_v,
-  int *iter, int *n_free, num_t costs[]);
-activeSetExitCode solveActiveSet_cg(
-  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
-  const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], unsigned int imax, const int n_u, const int n_v,
-  int *iter, int *n_free, num_t costs[]);
-
-#ifdef RECORD_COST
+#ifdef AS_RECORD_COST
 /**
  * @brief Compute penalty function cost as ||Au - b||^2
  * 

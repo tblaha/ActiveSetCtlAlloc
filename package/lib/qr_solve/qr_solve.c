@@ -16,8 +16,9 @@
 #include <stdio.h>
 /*# include <math.h>*/
 
-# include "qr_solve.h"
-# include "r8lib_min.h"
+#include "qr_solve.h"
+#include "r8lib_min.h"
+#include "solveActiveSet.h"
 
 #define DEBUG_FPRINTF(...)
 #define DEBUG_EXIT(...)
@@ -1607,13 +1608,13 @@ void qr_solve ( int m, int n, num_t a[], num_t b[], num_t x[]  )
   int lda;
   num_t tol;
 
-  num_t a_qr[CA_N_C*AS_N_U]; // changed from VLA
+  num_t a_qr[AS_N_C*AS_N_U]; // changed from VLA
   r8mat_copy_new ( m, n, a, a_qr );
   lda = m;
   tol = r8_epsilon ( ) / r8mat_amax ( m, n, a_qr );
   int jpvt[AS_N_U];
   num_t qraux[AS_N_U];
-  num_t r[CA_N_C];
+  num_t r[AS_N_C];
   itask = 1;
 
   ind = dqrls ( a_qr, lda, m, n, tol, &kr, b, x, r, jpvt, qraux, itask );

@@ -84,7 +84,7 @@ void setupWLS_b(
  * @param max_sig On exit: holds an over-estimate of the largest eig(A^TA)
  */
 void gamma_estimator(
-    const int d, const num_t** A2, const num_t cond_target,
+    const int d, num_t** A2, const num_t cond_target,
     num_t* gamma, num_t* max_sig);
 
 /**
@@ -100,7 +100,7 @@ void gamma_estimator(
  * @param max_sig On exit: holds an over-estimate of the largest eig(A^TA)
  */
 void cond_estimator(
-    const int d, const num_t** A2, const num_t min_diag2,
+    const int d, num_t** A2, const num_t min_diag2,
     num_t* cond_est, num_t* max_sig);
 
 #endif

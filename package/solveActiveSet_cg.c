@@ -1,7 +1,5 @@
 #include "solveActiveSet.h"
-#include "setup_wls.h"
 #include "chol_math.h"
-#include "size_defines.h"
 #include "sparse_math.h"
 #include <math.h>
 #include <stdio.h>
@@ -9,7 +7,7 @@
 
 //#define DEBUG
 
-//#define TRUNCATE_COST
+//#define AS_COST_TRUNCATE
 #define RTOL 1e-7 // TODO: check clashing with other macros
 #define CTOL 1e-7
 
@@ -94,17 +92,21 @@ void cg_solve(num_t** H, const num_t* beta, const int* permutation,
 
 };
 
-int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C],
+activeSetExitCode solveActiveSet_cg(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
   const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], bool updating, int imax, const int n_u, const int n_v,
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[])
 {
-  
-  (void)(updating);
+
+#ifndef AS_RECORD_COST
+  (void) costs;
+#endif
+
 
   if(!imax) imax = 100;
 
-  int8_t exit_code = ALLOC_ITER_LIMIT;
+  int8_t exit_code = AS_ITER_LIMIT;
 
   int n_c = n_u + n_v;
   uint8_t i;
@@ -118,13 +120,13 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
     }
   }
 
-  num_t A[CA_N_C][AS_N_U];
+  num_t A[AS_N_C][AS_N_U];
   num_t H[AS_N_U][AS_N_U];
   //num_t D[CA_N_U]; // diagonal preconditioner
 
   // Create a pointer array to the rows of A
   // such that we can pass it to a function
-  num_t * A_ptr[CA_N_C];
+  num_t * A_ptr[AS_N_C];
   num_t * H_ptr[AS_N_U];
   for(i = 0; i < n_c; i++) {
     A_ptr[i] = A[i];
@@ -187,7 +189,7 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
 
   // -------------- Start loop ------------
   *iter = 0;
-#ifdef TRUNCATE_COST
+#ifdef AS_COST_TRUNCATE
   num_t prev_cost = INFINITY;
 #endif
   while (++(*iter) <= imax) {
@@ -224,7 +226,7 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
       z[permutation[i]] = q[i];
     }
     if (nan_found) {
-      exit_code = ALLOC_NAN_FOUND_Q;
+      exit_code = AS_NAN_FOUND_Q;
       break;
     }
     // the following could be used for warmstarting CG
@@ -245,8 +247,8 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
 
       if ((*n_free) == n_u) {
         // no active constraints, we are optinal and feasible
-#ifdef RECORD_COST
-        if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+        if ((*iter) <= AS_RECORD_COST_N)
           costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
         exit_code = AS_SUCCESS;
@@ -258,7 +260,7 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
         uint8_t f_free = 0;
         num_t maxlam = -INFINITY;
 
-        num_t r[CA_N_C];
+        num_t r[AS_N_C];
         num_t r_sq = 0.;
         // dense part
         for (i = 0; i<n_v; i++) {
@@ -274,14 +276,14 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
         }
 
         // check cost
-#ifdef TRUNCATE_COST
+#ifdef AS_COST_TRUNCATE
         if (r_sq <= CTOL) {
-          exit_code = ALLOC_COST_BELOW_TOL;
+          exit_code = AS_COST_BELOW_TOL;
           break;
         }
         num_t diff = prev_cost - r_sq;
         if ((diff < 0.) || (diff/prev_cost < RTOL)) {
-          exit_code = ALLOC_COST_PLATEAU;
+          exit_code = AS_COST_PLATEAU;
           break;
         }
         prev_cost = r_sq;
@@ -305,8 +307,8 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
         }
 
         if (maxlam <= TOL) {
-#ifdef RECORD_COST
-          if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+          if ((*iter) <= AS_RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
           exit_code = AS_SUCCESS;
@@ -364,7 +366,7 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
         }
       }
       if (nan_found) {
-        exit_code = ALLOC_NAN_FOUND_US;
+        exit_code = AS_NAN_FOUND_US;
         break;
       }
 
@@ -376,13 +378,13 @@ int8_t solveActiveSet_cg(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
       permutation[--(*n_free)] = first_val;
     }
 
-#ifdef RECORD_COST
-    if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+    if ((*iter) <= AS_RECORD_COST_N)
       costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
 
   }
-  if (exit_code == ALLOC_ITER_LIMIT)
+  if (exit_code == AS_ITER_LIMIT)
     (*iter)--;
 
   //printf("%i\n", *iter);

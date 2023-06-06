@@ -12,7 +12,6 @@
  */
 
 #include "solveActiveSet.h"
-#include "size_defines.h"
 #include <stdio.h>
 /*#include "std.h"*/
 #include <inttypes.h>
@@ -64,17 +63,20 @@
  *
  * @return 0: exact solution found. 1: imax hit, solution not optimal
  */
-int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C],
+activeSetExitCode solveActiveSet_qr(
+  const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
   const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
-  int8_t Ws[AS_N_U], bool updating, int imax, const int n_u, const int n_v,
+  int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[])
 {
 
-  (void)(updating);
+#ifndef AS_RECORD_COST
+  (void) costs;
+#endif
 
   if(!imax) imax = 100;
 
-  int8_t exit_code = ALLOC_ITER_LIMIT;
+  int8_t exit_code = AS_ITER_LIMIT;
 
   uint8_t i;
   uint8_t j;
@@ -88,15 +90,15 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
     }
   }
 
-  num_t A[CA_N_C][AS_N_U];
-  num_t Q[CA_N_C][CA_N_C];
-  num_t R[CA_N_C][AS_N_U];
+  num_t A[AS_N_C][AS_N_U];
+  num_t Q[AS_N_C][AS_N_C];
+  num_t R[AS_N_C][AS_N_U];
 
   // Create a pointer array to the rows of A
   // such that we can pass it to a function
-  num_t * A_ptr[CA_N_C];
-  num_t * Q_ptr[CA_N_C];
-  num_t * R_ptr[CA_N_C];
+  num_t * A_ptr[AS_N_C];
+  num_t * Q_ptr[AS_N_C];
+  num_t * R_ptr[AS_N_C];
   for(i = 0; i < n_c; i++) {
     A_ptr[i] = A[i];
     Q_ptr[i] = Q[i];
@@ -174,7 +176,7 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
       z[permutation[i]] = q[i];
     }
     if (nan_found) {
-      exit_code = ALLOC_NAN_FOUND_Q;
+      exit_code = AS_NAN_FOUND_Q;
       break;
     }
     for (i = (*n_free); i < n_u; i++) {
@@ -191,8 +193,8 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
 
       if ((*n_free) == n_u) {
         // no active constraints, we are optinal and feasible
-#ifdef RECORD_COST
-        if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+        if ((*iter) <= AS_RECORD_COST_N)
           costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
         exit_code = AS_SUCCESS;
@@ -229,8 +231,8 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
         }
 
         if (maxlam <= TOL) {
-#ifdef RECORD_COST
-          if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+          if ((*iter) <= AS_RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
           exit_code = AS_SUCCESS;
@@ -293,7 +295,7 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
         }
       }
       if (nan_found) {
-        exit_code = ALLOC_NAN_FOUND_US;
+        exit_code = AS_NAN_FOUND_US;
         break;
       }
 
@@ -307,13 +309,13 @@ int8_t solveActiveSet_qr(const num_t A_col[CA_N_C*AS_N_U], const num_t b[CA_N_C]
       permutation[--(*n_free)] = first_val;
     }
 
-#ifdef RECORD_COST
-    if ((*iter) <= RECORD_COST_N)
+#ifdef AS_RECORD_COST
+    if ((*iter) <= AS_RECORD_COST_N)
       costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
 
   }
-  if (exit_code == ALLOC_ITER_LIMIT)
+  if (exit_code == AS_ITER_LIMIT)
     (*iter)--;
 
   return exit_code;
