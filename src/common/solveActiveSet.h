@@ -29,24 +29,24 @@
 
 #define AS_N_C (AS_N_U+AS_N_V)
 
-#if defined(AS_RECORD_COST) && !defined AS_RECORD_COST_N
+#if defined(AS_RECORD_COST) && !defined(AS_RECORD_COST_N)
 #define AS_RECORD_COST_N 15
 #endif
 
-#if defined(AS_COST_TRUNCATE) && !defined RTOL
-#define RTOL 1e-7
+#if defined(AS_COST_TRUNCATE) && !defined(AS_RTOL)
+#define AS_RTOL 1e-7
 #endif
 
-#if defined(AS_COST_TRUNCATE) && !defined CTOL
-#define CTOL 1e-7
+#if defined(AS_COST_TRUNCATE) && !defined(AS_CTOL)
+#define AS_CTOL 1e-7
 #endif
 
 #ifdef AS_SINGLE_FLOAT
 typedef float num_t;
-#define TOL 1e-4
+#define AS_CONSTR_TOL 1e-4
 #else
 typedef double num_t;
-#define TOL 1e-7
+#define AS_CONSTR_TOL 1e-7
 #endif
 
 typedef enum {

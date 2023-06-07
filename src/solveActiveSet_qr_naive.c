@@ -63,7 +63,7 @@
  */
 void qr_solve_wrapper_pprz(int m, int n, num_t** A, num_t* b, num_t* x);
 void qr_solve_wrapper_pprz(int m, int n, num_t** A, num_t* b, num_t* x) {
-  num_t in[m * n];
+  num_t in[AS_N_C * AS_N_U];
   // convert A to 1d array
   int k = 0;
   for (int j = 0; j < n; j++) {
@@ -224,7 +224,7 @@ activeSetExitCode solveActiveSet_qr_naive(
     // check limits
     n_infeasible = 0;
     int8_t limits_viol[AS_N_U];
-    check_limits_tol(n_u, TOL, us, umin, umax, limits_viol, 0);
+    check_limits_tol(n_u, AS_CONSTR_TOL, us, umin, umax, limits_viol, 0);
     for (int i = 0; i < n_u; i++) {
       if (limits_viol[i] != 0)
         infeasible_index[n_infeasible++] = i;

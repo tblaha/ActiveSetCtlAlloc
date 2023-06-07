@@ -1,17 +1,65 @@
+/** @file solveActiveSet_qr.c
+ * @brief Use active-set QR algorithm to solve constrained least squares
+ *
+ * This algorithm will find the optimal solution to the least squares problem 
+ * setup with setup_wls.c
+ *
+ * Uses an active-set algorithm with QR subspace optimisation. The QR components
+ * are updated at every step instead of naively re-factorised.
+ *
+ * written by Till Blaha
+ * MAVLab Delft University of Technology
+ */
+
 #include "solveActiveSet.h"
-#include "setupWLS.h"
-#include "chol_math.h"
-#include "sparse_math.h"
-#include <math.h>
 #include <stdio.h>
-#include <string.h>
+/*#include "std.h"*/
+#include <inttypes.h>
 #include <stdbool.h>
+#include <math.h>
 
-//#define DEBUG
+#include <string.h>
+#include <math.h>
+#include <float.h>
+#include "qr_wrapper.h"
+#include "qr_updates.h"
+#include "qr_solve/qr_solve.h"
+#include "qr_solve/r8lib_min.h"
+#include "sparse_math.h"
 
-//#define AS_COST_TRUNCATE
 
-activeSetExitCode solveActiveSet_chol(
+/**
+ * @brief active set algorithm for constrained least squares, QR factorisation
+ *
+ * Takes a representation of the problem
+ * 
+ *    min || Au - b ||^2 
+ *      st. lb <= u <= lb
+ * 
+ * and returns the optimal solution u and the active-set, while respective a
+ * certain iteration limit.
+ * 
+ * Inputs to this function can be derived from setup_wls.c
+ * 
+ * @param A_col column major representation of A
+ * @param b the rhs
+ * @param umin The minimum u vector
+ * @param umax The maximum u vector
+ * @param us Input/Output: initial guess to be iteratively improved
+ * @param Ws Input/Output: indicates whether us[i] is bounded at umin[i] (-1),
+ * at umax[i] (+1), or not bounded (0)
+ * @param updating unused. Could be used to switch between updating and naive 
+ * factorisations
+ * @param imax Maximum number of iterations taken by the algorithm 
+ * @param n_u Length of u
+ * @param n_v Lenght of v
+ * @param iter Iterations taken
+ * 
+ * @note n_u+n_v must be <= 256
+ *
+ * @return 0: exact solution found. 1: imax hit, solution not optimal
+ */
+activeSetExitCode solveActiveSet_qr(
   const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
   const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
   int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
@@ -24,11 +72,11 @@ activeSetExitCode solveActiveSet_chol(
 
   if(!imax) imax = 100;
 
-  activeSetExitCode exit_code = AS_ITER_LIMIT;
+  int8_t exit_code = AS_ITER_LIMIT;
 
-  int n_c = n_u + n_v;
   uint8_t i;
   uint8_t j;
+  uint8_t n_c = n_u + n_v;
 
   for (i = 0; i < n_u; i++) {
     if (Ws[i] == 0) {
@@ -39,19 +87,18 @@ activeSetExitCode solveActiveSet_chol(
   }
 
   num_t A[AS_N_C][AS_N_U];
-  num_t H_perm[AS_N_U][AS_N_U];
-  num_t H[AS_N_U][AS_N_U];
-  num_t L[AS_N_U][AS_N_U];
+  num_t Q[AS_N_C][AS_N_C];
+  num_t R[AS_N_C][AS_N_U];
 
   // Create a pointer array to the rows of A
   // such that we can pass it to a function
   num_t * A_ptr[AS_N_C];
-  num_t * H_perm_ptr[AS_N_U];
-  num_t * H_ptr[AS_N_U];
-  num_t * L_ptr[AS_N_U];
+  num_t * Q_ptr[AS_N_C];
+  num_t * R_ptr[AS_N_C];
   for(i = 0; i < n_c; i++) {
     A_ptr[i] = A[i];
-    if (i < n_u) { H_perm_ptr[i] = H_perm[i]; H_ptr[i] = H[i]; L_ptr[i] = L[i]; }
+    Q_ptr[i] = Q[i];
+    R_ptr[i] = R[i];
   }
 
   int permutation[AS_N_U]; memset(permutation, 0, sizeof(int)*n_u);
@@ -69,51 +116,17 @@ activeSetExitCode solveActiveSet_chol(
   }
 
   // convert col major input to 2d array
-  for(i = 0; i < n_c; i++) {
-    for(j = 0; j < n_u; j++) {
+  for (i = 0; i < n_c; i++) {
+    for (j = 0; j < n_u; j++) {
       A[i][j] = A_col[i + n_c * j];
     }
   }
 
   // initial factorisation
-  int dummy[AS_N_U];
-  for (i = 0; i < n_u; i++)
-    dummy[i] = i;
-
-  block_diag_self_mult(n_c, n_u, A_ptr, H_ptr, n_v, dummy);
-  for(i = 0; i < n_u; i++) {
-    for(j = 0; j < n_u; j++) {
-      H_perm[i][j] = H[permutation[i]][permutation[j]];
-    }
-  }
-  
-  // debug output
-  #ifdef DEBUG
-  printf("H:\n");
-  for (i =0; i<n_u; i++) {
-    for (j =0; j<n_u; j++) {
-      printf("%f ", H_ptr[i][j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
+  qr_wrapper(n_c, n_u, permutation, A_ptr, Q_ptr, R_ptr);
+  #ifdef debug_qr
+  print_debug(A_ptr, Q_ptr, R_ptr, &n_u, &n_c);
   #endif
-
-  num_t inv_diag[AS_N_U];
-  pprz_cholesky_float(L_ptr, H_perm_ptr, inv_diag, n_u);
-
-  // debug output
-  #ifdef DEBUG
-  printf("H_perm:\n");
-  for (i =0; i<n_u; i++) {
-    for (j =0; j<n_u; j++) {
-      printf("%f ", H_perm_ptr[i][j]);
-    }
-    printf("\n");
-  }
-  printf("\n");
-  #endif
-
 
   num_t q[AS_N_U];
   num_t z[AS_N_U];
@@ -121,42 +134,36 @@ activeSetExitCode solveActiveSet_chol(
 
   // -------------- Start loop ------------
   *iter = 0;
-#ifdef AS_COST_TRUNCATE
-  num_t prev_cost = INFINITY;
-#endif
   while (++(*iter) <= imax) {
-    num_t beta[AS_N_U];
-    for (i=0; i<(*n_free); i++) {
-      beta[i] = 0;
-      for (j=(*n_free); j<n_u; j++)
-        beta[i] -= H[permutation[i]][permutation[j]] * us[permutation[j]];
-
-      // beta += A'*b, but is optimised, because A has diagonal part
-      // TODO: can be pre-computed!! No need to do every iteration
-      for (j=0; j<n_v; j++)
-        beta[i] += A[j][permutation[i]] * b[j];
-
-      beta[i] += A[n_v+permutation[i]][permutation[i]] * b[n_v+permutation[i]];
-
-      #ifdef DEBUG
-      printf("%f\n", beta[i]);
-      #endif
-    }
-
-    #ifdef DEBUG
-    printf("L:\n");
-    for (i =0; i<n_u; i++) {
-      for (j =0; j<n_u; j++) {
-        printf("%f ", L_ptr[i][j]);
+    num_t c[AS_N_U];
+    for (i=0; i < (*n_free); i++) {
+      c[i] = 0;
+      for (j=0; j < n_c; j++) {
+        c[i] += Q_ptr[j][i]*b[j];
       }
-      printf("\n");
     }
-    printf("\n");
-    #endif
-    cholesky_solve(L_ptr, inv_diag, (*n_free), beta, q);
 
+    num_t u_bound_perm[AS_N_U];
+    for (i=0; i < n_u - (*n_free); i++) {
+      if (Ws[permutation[i+(*n_free)]] > 0)
+        u_bound_perm[i] = umax[permutation[i+(*n_free)]];
+      else if (Ws[permutation[i+(*n_free)]] < 0) 
+        u_bound_perm[i] = umin[permutation[i+(*n_free)]];
+#ifdef debug_qr
+      else
+        printf("W out of bounds for bounded variables");
+#endif
+    }
+
+    for (i=0; i < (*n_free); i++) {
+      for (j=0; j < n_u - (*n_free); j++) {
+        c[i] -= R_ptr[i][(*n_free)+j] * u_bound_perm[j];
+      }
+    }
+
+    backward_tri_solve((*n_free), R_ptr, c, q);
+    
     for (i = 0; i < (*n_free); i++) {
-      // check for nan according to IEEE 754 assuming -ffast-math is not passed
       if (q[i] != q[i]) {
         // break immediately with error
         nan_found = true;
@@ -174,12 +181,11 @@ activeSetExitCode solveActiveSet_chol(
 
     uint8_t n_violated = 0;
     int8_t W_temp[AS_N_U];
-    n_violated = check_limits_tol((*n_free), TOL, z, umin, umax, W_temp, permutation);
+    n_violated = check_limits_tol((*n_free), AS_CONSTR_TOL, z, umin, umax, W_temp, permutation);
 
     if (!n_violated) {
-      for (i = 0; i < (*n_free); i++) {
+      for (i = 0; i < (*n_free); i++)
         us[permutation[i]] = z[permutation[i]];
-      }
 
       if ((*n_free) == n_u) {
         // no active constraints, we are optinal and feasible
@@ -191,50 +197,28 @@ activeSetExitCode solveActiveSet_chol(
         break;
       } else {
         // active constraints, check for optimality
+        num_t d[AS_N_U];
+        for (i=(*n_free); i < n_u; i++) {
+          d[i] = 0;
+          for (j=0; j < n_c; j++) {
+            d[i] += Q_ptr[j][i]*b[j];
+          }
+        }
+
+        for (i=(*n_free); i < n_u; i++) {
+          for (j=i; j < n_u; j++){
+            d[i] -= R_ptr[i][j]*us[permutation[j]];
+          }
+        }
 
         num_t lambda_perm[AS_N_U];
         uint8_t f_free = 0;
         num_t maxlam = -INFINITY;
-
-        num_t r[AS_N_C];
-        num_t r_sq = 0.;
-        // dense part
-        for (i = 0; i<n_v; i++) {
-          r[i] = -b[i];
-          for (j =0; j<n_u; j++)
-            r[i] += A[i][j]*z[j];
-          r_sq += r[i]*r[i];
-        }
-        // diagonal part
-        for (i=n_v; i<n_c; i++) {
-          r[i] = -b[i] + A[i][i-n_v]*z[i-n_v];
-          r_sq += r[i]*r[i];
-        }
-
-        // check cost
-#ifdef AS_COST_TRUNCATE
-        if (r_sq <= CTOL) {
-          exit_code = AS_COST_BELOW_TOL;
-          break;
-        }
-        num_t diff = prev_cost - r_sq;
-        if ((diff < 0.) || (diff/prev_cost < RTOL)) {
-          exit_code = AS_COST_PLATEAU;
-          break;
-        }
-        prev_cost = r_sq;
-#endif
-
-        for (i = (*n_free); i<n_u; i++) {
+        for (i=(*n_free); i<n_u; i++) {
           lambda_perm[i] = 0;
-          // lambda = A^T*r but is optimised with the diagonal part of A
-          // dense part
-          for (j = 0; j < n_v; j++)
-            lambda_perm[i] -= A[j][permutation[i]]*r[j];
-
-          // diagonal part
-          lambda_perm[i] -= A[permutation[i]+n_v][permutation[i]]*r[permutation[i]+n_v];
-
+          for (j=(*n_free); j <= i; j++) {
+            lambda_perm[i] += R_ptr[j][i]*d[j];
+          }
           lambda_perm[i] *= -Ws[permutation[i]];
           if (lambda_perm[i] > maxlam) {
             maxlam = lambda_perm[i];
@@ -242,17 +226,20 @@ activeSetExitCode solveActiveSet_chol(
           }
         }
 
-        if (maxlam <= TOL) {
+        if (maxlam <= AS_CONSTR_TOL) {
 #ifdef AS_RECORD_COST
           if ((*iter) <= AS_RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);
 #endif
           exit_code = AS_SUCCESS;
-          break; // constraints hit, but optimal
+          break; // feasible and optimal
         }
 
-        // update chol
-        choladd(L_ptr, (*n_free), inv_diag, H_ptr, permutation, (*n_free)+f_free);
+        // free variable
+        qr_shift(n_c, n_u, Q_ptr, R_ptr, (*n_free), (*n_free)+f_free);
+        #ifdef debug_qr
+        print_debug(A_ptr, Q_ptr, R_ptr, &n_u, &n_c);
+        #endif
 
         Ws[permutation[(*n_free)+f_free]] = 0;
         uint8_t last_val = permutation[(*n_free)+f_free];
@@ -289,10 +276,9 @@ activeSetExitCode solveActiveSet_chol(
         }
       }
 
-      // update xs
-      for (i =0; i<n_u; i++) {
-        num_t p = z[i] - us[i];
-        num_t incr = a * p;
+      // update us
+      for (i=0; i<n_u; i++) {
+        num_t incr = a * (z[i] - us[i]);
         if (i == i_a) {
           us[i] = (i_s == +1) ? umax[i] : umin[i];
         } else {
@@ -309,8 +295,7 @@ activeSetExitCode solveActiveSet_chol(
         break;
       }
 
-      // update chol
-      choldel(L_ptr, inv_diag, f_bound, (*n_free));
+      qr_shift(n_c, n_u, Q_ptr, R_ptr, (*n_free)-1, f_bound);
 
       Ws[i_a] = i_s;
       uint8_t first_val = permutation[f_bound];

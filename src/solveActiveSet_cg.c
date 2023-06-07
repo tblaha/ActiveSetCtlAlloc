@@ -5,11 +5,6 @@
 #include <stdio.h>
 #include <string.h>
 
-//#define DEBUG
-
-//#define AS_COST_TRUNCATE
-#define RTOL 1e-7 // TODO: check clashing with other macros
-#define CTOL 1e-7
 
 #define RTR_TOL 1e-100
 
@@ -172,7 +167,7 @@ activeSetExitCode solveActiveSet_cg(
   */
   
   // debug output
-  #ifdef DEBUG
+  #ifdef AS_VERBOSE
   printf("H:\n");
   for (i =0; i<n_u; i++) {
     for (j =0; j<n_u; j++) {
@@ -206,7 +201,7 @@ activeSetExitCode solveActiveSet_cg(
 
       beta[i] += A[n_v+permutation[i]][permutation[i]] * b[n_v+permutation[i]];
 
-      #ifdef DEBUG
+      #ifdef AS_VERBOSE
       printf("%f\n", beta[i]);
       #endif
     }
@@ -238,7 +233,7 @@ activeSetExitCode solveActiveSet_cg(
 
     uint8_t n_violated = 0;
     int8_t W_temp[AS_N_U];
-    n_violated = check_limits_tol((*n_free), TOL, z, umin, umax, W_temp, permutation);
+    n_violated = check_limits_tol((*n_free), AS_CONSTR_TOL, z, umin, umax, W_temp, permutation);
 
     if (!n_violated) {
       for (i = 0; i < (*n_free); i++) {
@@ -277,12 +272,12 @@ activeSetExitCode solveActiveSet_cg(
 
         // check cost
 #ifdef AS_COST_TRUNCATE
-        if (r_sq <= CTOL) {
+        if (r_sq <= AS_CTOL) {
           exit_code = AS_COST_BELOW_TOL;
           break;
         }
         num_t diff = prev_cost - r_sq;
-        if ((diff < 0.) || (diff/prev_cost < RTOL)) {
+        if ((diff < 0.) || (diff/prev_cost < AS_RTOL)) {
           exit_code = AS_COST_PLATEAU;
           break;
         }
@@ -306,7 +301,7 @@ activeSetExitCode solveActiveSet_cg(
           }
         }
 
-        if (maxlam <= TOL) {
+        if (maxlam <= AS_CONSTR_TOL) {
 #ifdef AS_RECORD_COST
           if ((*iter) <= AS_RECORD_COST_N)
             costs[(*iter)-1] = calc_cost(A_col, b, us, n_u, n_v);

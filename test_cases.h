@@ -15,7 +15,7 @@ typedef struct TestCase {
 	num_t u0[AS_N_U];
 	num_t up[AS_N_U];
 	num_t us[AS_N_U];
-	num_t res[CA_N_C];
+	num_t res[AS_N_C];
 	// int W[AS_N_U]; // TODO
 	int n_u;
 	int n_v;

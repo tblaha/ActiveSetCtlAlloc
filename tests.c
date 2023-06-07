@@ -3,15 +3,17 @@
  * 
  * Till Blaha 2022
  */
-//#define VERBOSE
 
-#include "main.h"
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include "solveActiveSet.h"
-#include "setup_wls.h"
+#include "setupWLS.h"
 #include <time.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include "test_cases.h"
 
 static void executeSolution(
     int n_v,
@@ -24,7 +26,6 @@ static void executeSolution(
     num_t lb[AS_N_U],
     num_t ub[AS_N_U],
     num_t u0[AS_N_U],
-    bool updating,
     activeSetAlgoChoice choice,
     num_t theta,
     num_t cond_bound,
@@ -41,8 +42,8 @@ static void executeSolution(
     int* iter
 ) 
 {
-  num_t A[CA_N_C*AS_N_U];
-  num_t b[CA_N_C];
+  num_t A[AS_N_C*AS_N_U];
+  num_t b[AS_N_C];
   num_t gamma;
   int8_t Ws_use[AS_N_U];
 
@@ -52,25 +53,35 @@ static void executeSolution(
   }
 
   clock_t begin = clock();
-  setup_wls(
-    n_v,
-    n_u,
+  setupWLS_A(
     JG,
     Wv,
     Wu,
-    up,
-    dv,
+    n_v,
+    n_u,
     theta,
     cond_bound,
     A,
-    b,
     &gamma
+  );
+  setupWLS_b(
+    dv,
+    up,
+    Wv,
+    Wu,
+    n_v,
+    n_u,
+    gamma,
+    b
   );
 
   //printf("%f\n", gamma);
-
+#ifdef AS_RECORD_COST
   num_t costs[AS_RECORD_COST_N];
-  solveActiveSet(
+#else
+  num_t *costs = 0;
+#endif
+  solveActiveSet(choice)(
     A,
     b,
     lb,
@@ -78,14 +89,13 @@ static void executeSolution(
     us,
     Ws_use,
     //Ws, // for "testing" warm starting
-    updating,
     100,
     n_u,
     n_v,
     iter,
     n_free,
-    costs,
-    choice);
+    costs
+  );
   clock_t end = clock();
   *exec_time_us = (double)(end - begin) / CLOCKS_PER_SEC * 1e6;
 
@@ -187,6 +197,8 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
   bool first_run = false;
   if (mode == 20)
     printf("idx,v_error,u_error,u_pert,exec_time,n_satch,iter\n");
+
+  double exec_time_total_us = 0;
   for (i=0; i < N*N_CASES; i++) {
   //for (int i=179; i < 180; i++) {
     idx = (int) i/N;
@@ -198,7 +210,6 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
     //test_cases[idx].Wv[3] = sqrtf(100.);
 
     double exec_time_us;
-    double exec_time_total_us;
     int n_free;
     int iter;
     if (first_run) {
@@ -216,7 +227,6 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
       test_cases[idx].lb,
       test_cases[idx].ub,
       test_cases[idx].u0,
-      test_cases[idx].updating,
       choice,
       theta,
       cond_bound,
@@ -260,7 +270,6 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
         test_cases[idx].lb,
         test_cases[idx].ub,
         test_cases[idx].u0,
-        test_cases[idx].updating,
         choice,
         theta,
         cond_bound,
@@ -287,7 +296,7 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
       max_perturb = (max_perturb < perturbation) ? perturbation  : max_perturb;
       avg_perturb += perturbation / N_CASES;
 
-      #ifdef VERBOSE
+      #ifdef AS_VERBOSE
       printf("%d u: %.7f | %.7f%%\n", i, us_gt_norm[0], 100*us_rel_error[0]);
       printf("%d v: %.7f | %.7f%%\n", i, v_gt_norm[0], 100*v_rel_error[0]);
       #endif

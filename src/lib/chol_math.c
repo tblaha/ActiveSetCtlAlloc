@@ -46,7 +46,7 @@ void cholesky_solve(num_t **L, num_t* inv_diag, int n, num_t *b, num_t *x) {
 
 void cholup(num_t** L, int i1, int i2)
 {
-#ifdef DEBUG
+#ifdef AS_VERBOSE
     if (i1 < 1)
         printf("should not happen");
 #endif

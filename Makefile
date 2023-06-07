@@ -1,12 +1,114 @@
+#####
+# Package config
+AS_N_U ?= 20
+AS_N_V ?= 6
+DEFINES = -DAS_N_U=$(AS_N_U) -DAS_N_V=$(AS_N_V)
 
-tests:
-	cd ./harness && make all
+VERBOSE?=n
+ifeq ($(VERBOSE), y)
+DEFINES += -DAS_VERBOSE
+endif
 
-verify: tests
-	./harness/main.o verify 0
-	./harness/main.o verify 1
-	./harness/main.o verify 2
-	./harness/main.o verify 3
+SINGLE?=n
+ifeq ($(SINGLE), y)
+DEFINES += -DAS_SINGLE_FLOAT
+endif
 
-clean:
-	cd ./harness && make clean
+TRUNCATE?=y
+ifeq ($(TRUNCATE), y)
+DEFINES += -DAS_COST_TRUNCATE
+endif
+
+ifdef RTOL
+DEFINES += -DAS_RTOL=$(RTOL)
+endif
+
+ifdef CTOL
+DEFINES += -DAS_CTOL=$(CTOL)
+endif
+
+STATIC?=n
+ifeq ($(STATIC), y)
+LIB_EXT = a
+else
+LIB_EXT = so
+endif
+
+OPTI ?= 3
+DEBUG?=n
+ifeq ($(DEBUG), y)
+# override optimisations
+OPTI=0
+DEBUG_FLAG=-g
+endif
+
+OPTIM = -O$(OPTI) -fno-loop-optimize -fno-aggressive-loop-optimizations
+CONF = $(DEFINES) $(DEBUG_FLAG) $(OPTIM) $(VERBOSE_FLAG)
+
+#########
+# library paths/names
+LIB_NAME = as
+SRC_DIR = ./src
+BIN_DIR = ./bin
+LIBRARY = $(BIN_DIR)/lib$(LIB_NAME).$(LIB_EXT)
+SOURCES_INSIDE_SRC = common/solveActiveSet.c solveActiveSet_cg.c solveActiveSet_chol.c solveActiveSet_qr.c solveActiveSet_qr_naive.c common/setupWLS.c lib/chol_math.c lib/qr_updates.c lib/qr_wrapper.c lib/qr_solve/qr_solve.c lib/qr_solve/r8lib_min.c lib/sparse_math.c
+SOURCES = $(addprefix $(SRC_DIR)/, $(SOURCES_INSIDE_SRC))
+BINARIES = $(addprefix $(BIN_DIR)/, $(SOURCES_INSIDE_SRC:%.c=%.o))
+
+# tester paths/names
+TESTER = tests
+TEST_SOURCES = tests.c
+TEST_BINARIES = $(TEST_SOURCES:%.c=%.o)
+
+#########
+# compiler conf
+CC = gcc
+WARN_FLAGS = -Wall -W -Wwrite-strings -Winline -Wstrict-prototypes -Wnested-externs -Wpointer-arith -Wcast-align -Wcast-qual -Wshadow -Werror=vla
+CC_FLAGS = -fstack-usage -fwrapv -fPIC ${WARN_FLAGS} $(CONF)
+INCLUDES = -Isrc/common -Isrc/lib -Isrc
+LINK_FLAGS = -lm
+
+# other programs
+AR = ar rcsD
+RM = rm -f
+
+#########
+# gateway goals
+.DEFAULT_GOAL = library
+perform_tests : tester
+	./$(TESTER) verify 0
+	./$(TESTER) verify 1
+	./$(TESTER) verify 2
+	./$(TESTER) verify 3
+tester : $(TESTER)
+library : $(LIBRARY)
+clean : cleaner
+
+#########
+# actual targets
+$(TESTER) : $(TEST_BINARIES) $(LIBRARY)
+	$(CC) ${CC_FLAGS} $+ -o $@ $(INCLUDES) $(LINK_FLAGS)
+# $+ is all prereqs including douplicates and in order
+
+%.o : %.c
+	$(CC) -c ${CC_FLAGS} -O1 $^ -o $@ $(INCLUDES)
+# O3 is buggy here for some reason and generates spurious warnings
+
+$(LIBRARY) : $(BINARIES)
+ifeq ($(STATIC),y)
+	$(AR) $@ $^
+# the $? would only copies the changed $(BINARIES) into the archive thanks to the r 
+# flag in the command for ar, pretty neat
+else
+	$(CC) -shared $(CC_FLAGS) $^ -o $@ $(INCLUDES)
+endif
+
+$(BIN_DIR)/%.o : $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(CC) -c $(CC_FLAGS) $^ -o $@ $(INCLUDES)
+
+cleaner : 
+	$(RM) -rf bin
+	$(RM) *.o
+	${RM} *.su
+	$(RM) $(TESTER)

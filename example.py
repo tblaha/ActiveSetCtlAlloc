@@ -1,7 +1,7 @@
 # https://github.com/chcomin/ctypes-numpy-example/tree/master/simplest
 import numpy as np
 import ctypes as ct
-funcs = ct.CDLL("./bin/solveActiveSet.so")
+funcs = ct.CDLL("./bin/libas.so")
 
 AS_N_V = 6
 AS_N_U = 20
@@ -75,7 +75,7 @@ activeSetAlgo = ct.CFUNCTYPE(
 )
 
 funcs.solveActiveSet.restype = ct.c_void_p # to get memory address correct
-solveActiveSet = activeSetAlgo(funcs.solveActiveSet(0))
+solveActiveSet = activeSetAlgo(funcs.solveActiveSet(2))
 res = solveActiveSet(
     A.ctypes.data_as(c_doublep),
     b.ctypes.data_as(c_doublep),
