@@ -168,12 +168,12 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
 
   // predefine arrays
   int8_t Ws[AS_N_U] = {1, 0, -1, 1, 0, 0};
-  memset(Ws, 0, sizeof(int8_t)*AS_N_U);
+  //memset(Ws, 0, sizeof(int8_t)*AS_N_U);
 
   // global settings
   //num_t theta = 1.5e-3 * sqrt(1e-4);  // works: 1.5e-3 * 1e0
   num_t theta = 2.0e-9;
-  num_t cond_bound = 4e6; // works: 4.45e5. Optimal 2.5e6 for nederdrone? 2.4e6 for hex?
+  num_t cond_bound = 4e5; // works: 4.45e5. Optimal 2.5e6 for nederdrone? 2.4e6 for hex?
 
   num_t max_v_error = 0.0F;
   num_t max_us_error = 0.0F;

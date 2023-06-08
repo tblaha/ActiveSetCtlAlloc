@@ -39,28 +39,35 @@ void setupWLS_A(
         }
     }
 
-    num_t max_sig;
-    if (cond_bound > 0) {
-        // estimate minimum gamma, and then use it, unless theta results in a 
-        // higher value
-        gamma_estimator(n_v, A2_ptr, cond_bound, gamma, &max_sig);
-        *gamma = (*gamma > sqrt(max_sig)*theta) ? *gamma : sqrt(max_sig)*theta;
-    } else {
-        // bypass the gamma returned from the estimator, but use the max_sig
-        num_t dummy;
-        gamma_estimator(n_v, A2_ptr, 1., &dummy, &max_sig);
-        *gamma = sqrt(max_sig)*theta;
-    }
-
-    // get minimum of Wu and normalize by that
+    // get minimum of Wu and normalize by that. Also get max of resultant
     num_t min_diag = +INFINITY;
-    for (int i=0; i<n_u; i++)
+    num_t max_diag = 0.;
+    for (int i=0; i<n_u; i++) {
         min_diag = (min_diag > Wu[i]) ? Wu[i] : min_diag;
+        max_diag = (max_diag < Wu[i]) ? Wu[i] : max_diag;
+    }
 
     min_diag = (min_diag > 1e-6) ? min_diag : 1e-6;
     num_t min_diag_inv = 1/min_diag;
     for (int i=0; i<n_u; i++)
         Wu[i] *= min_diag_inv;
+
+    max_diag *= min_diag_inv; 
+    // has to be 1 or larger than 1, so divisions by max_diag are fine
+
+    num_t max_sig;
+    if (cond_bound > 0) {
+        // estimate minimum gamma, and then use it, unless theta results in a 
+        // higher value
+        gamma_estimator(n_v, A2_ptr, cond_bound, gamma, &max_sig);
+        *gamma = (*gamma > sqrt(max_sig)*theta/max_diag) ? *gamma 
+        : sqrt(max_sig)*theta/max_diag;
+    } else {
+        // bypass the gamma returned from the estimator, but use the max_sig
+        num_t dummy;
+        gamma_estimator(n_v, A2_ptr, 1., &dummy, &max_sig);
+        *gamma = sqrt(max_sig)*theta/max_diag;
+    }
 
     // add sparse part to A (from actuator penalty)
     for (int i=0; i<n_c; i++) {

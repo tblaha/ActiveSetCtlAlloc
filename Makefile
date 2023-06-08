@@ -34,7 +34,7 @@ else
 LIB_EXT = so
 endif
 
-OPTI ?= 3
+OPTI?=3
 DEBUG?=n
 ifeq ($(DEBUG), y)
 # override optimisations
@@ -76,10 +76,10 @@ RM = rm -f
 # gateway goals
 .DEFAULT_GOAL = library
 perform_tests : tester
-	./$(TESTER) verify 0
-	./$(TESTER) verify 1
-	./$(TESTER) verify 2
-	./$(TESTER) verify 3
+	@echo QR_NAIVE: && ./$(TESTER) verify 0
+	@echo QR: && ./$(TESTER) verify 1
+	@echo CHOL: && ./$(TESTER) verify 2
+	@echo CG: && ./$(TESTER) verify 3
 tester : $(TESTER)
 library : $(LIBRARY)
 clean : cleaner
@@ -91,8 +91,12 @@ $(TESTER) : $(TEST_BINARIES) $(LIBRARY)
 # $+ is all prereqs including douplicates and in order
 
 %.o : %.c
-	$(CC) -c ${CC_FLAGS} -O1 $^ -o $@ $(INCLUDES)
+ifeq ($(OPTI), 0)
+	$(CC) -c ${CC_FLAGS} -O0 $^ -o $@ $(INCLUDES)
+else
 # O3 is buggy here for some reason and generates spurious warnings
+	$(CC) -c ${CC_FLAGS} -O1 $^ -o $@ $(INCLUDES)
+endif
 
 $(LIBRARY) : $(BINARIES)
 ifeq ($(STATIC),y)

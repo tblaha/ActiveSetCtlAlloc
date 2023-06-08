@@ -25,6 +25,30 @@
  * 
  * Outputs only A and gamma. b has to be computed with setupWLS_b
  * 
+ * For the automatic scaling of the objectives, this uses the parameter theta,
+ * which sets the target ratio of the largest eigenvalue of the first term and 
+ * the largest eigenvalue of the second term.
+ * If v_des and u are on similar scales, this approximates some separation of
+ * the two objectives. It would be much more accurate to consider the lowest 
+ * eigenvalue of the first term, but that is much harder to estimate quickly.
+ * 
+ * If v_des is generally larger than u (on a larger scale), then theta may be
+ * chosen slightly lower.
+ * 
+ * Control allocation theta guidelines:
+ * 1e-3
+ * 
+ * Control allocation cond_target guidelines:
+ * 1e9 for QR and QR_NAIVE algorithms
+ * 1e6 for Cholesky, and expect slight mixing of the objectives
+ * 
+ * Too high gamma (caused by too high theta or too low cond_bound) results in 
+ * higher penalty on u (if these represent control actuators, this means a 
+ * slower response).
+ * Too low gamma (when cond_bound is too high _and_ theta is low), results in 
+ * numerical inaccuracies, especially in the Cholesky algorithm, but should not
+ * cause crashes.
+ * 
  * @param B Effectiveness matrix v = Bu
  * @param Wv Diagonal entries of weighing matrix for pseudocontrol error
  * @param Wu Diagonal entries of weighing matrix for actuator penalty

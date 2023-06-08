@@ -74,8 +74,13 @@ activeSetAlgo = ct.CFUNCTYPE(
     c_doublep,
 )
 
+AS_QR_NAIVE = 0
+AS_QR = 1
+AS_CHOL = 2
+AS_CG = 3
+
 funcs.solveActiveSet.restype = ct.c_void_p # to get memory address correct
-solveActiveSet = activeSetAlgo(funcs.solveActiveSet(2))
+solveActiveSet = activeSetAlgo(funcs.solveActiveSet(AS_QR))
 res = solveActiveSet(
     A.ctypes.data_as(c_doublep),
     b.ctypes.data_as(c_doublep),
