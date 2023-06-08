@@ -7,6 +7,8 @@ all :
 		SINGLE=y \
 		TRUNCATE=y \
 		STATIC=y \
+		INCLUDE_CG=n \
+        RECORD_COST=n \
 		OPTI=2
 
 # TODO: explain the choices

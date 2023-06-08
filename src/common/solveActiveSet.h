@@ -30,7 +30,7 @@
 #define AS_N_C (AS_N_U+AS_N_V)
 
 #if defined(AS_RECORD_COST) && !defined(AS_RECORD_COST_N)
-#define AS_RECORD_COST_N 15
+#error "AS_RECORD_COST_N must be defined if AS_RECORD_COST is defined."
 #endif
 
 #if defined(AS_COST_TRUNCATE) && !defined(AS_RTOL)
@@ -62,7 +62,9 @@ typedef enum {
   AS_QR_NAIVE = 0, // mostly previous PPRZ
   AS_QR = 1,
   AS_CHOL = 2,
+#ifdef AS_INCLUDE_CG
   AS_CG = 3,
+#endif
   } activeSetAlgoChoice;
 
 /**
@@ -107,11 +109,13 @@ activeSetExitCode solveActiveSet_chol(
   const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
   int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[]);
+#ifdef AS_INCLUDE_CG
 activeSetExitCode solveActiveSet_cg(
   const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
   const num_t umin[AS_N_U], const num_t umax[AS_N_U], num_t us[AS_N_U],
   int8_t Ws[AS_N_U], int imax, const int n_u, const int n_v,
   int *iter, int *n_free, num_t costs[]);
+#endif
 
 /**
  * @brief Gateway function the allows switching 
@@ -126,7 +130,6 @@ activeSetExitCode solveActiveSet_cg(
  */
 activeSetAlgo solveActiveSet(activeSetAlgoChoice choice);
 
-#ifdef AS_RECORD_COST
 /**
  * @brief Compute penalty function cost as ||Au - b||^2
  * 
@@ -140,25 +143,9 @@ activeSetAlgo solveActiveSet(activeSetAlgoChoice choice);
  * 
  * @return cost of quadratic penalty function at point u
  */
+#ifdef AS_RECORD_COST
 num_t calc_cost(const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],
-  const num_t u[AS_N_U], const int n_u, const int n_v)
-{
-	// checking cost in n_v*n_u+n_u time
-	num_t cost = 0.;
-	for (int i=0; i<(n_u+n_v); i++) {
-		num_t i_cost = -b[i];
-		if (i < n_v) {
-			// dense part
-			for (int j=0; j<n_u; j++)
-				i_cost += A_col[i + j*(n_u+n_v)]*u[j];
-		} else {
-			// sparse part
-			i_cost += A_col[i + (i-n_v)*(n_u+n_v)]*u[i-n_v]; 
-		}
-		cost += i_cost*i_cost;
-	}
-	return cost;
-};
+  const num_t u[AS_N_U], const int n_u, const int n_v);
 #endif
 
 #endif

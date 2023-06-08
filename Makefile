@@ -19,12 +19,24 @@ ifeq ($(TRUNCATE), y)
 DEFINES += -DAS_COST_TRUNCATE
 endif
 
+RECORD_COST?=n
+ifeq ($(RECORD_COST), y)
+DEFINES += -DAS_RECORD_COST
+RECORD_COST_N?=15
+DEFINES += -DAS_RECORD_COST_N=$(RECORD_COST_N)
+endif
+
 ifdef RTOL
 DEFINES += -DAS_RTOL=$(RTOL)
 endif
 
 ifdef CTOL
 DEFINES += -DAS_CTOL=$(CTOL)
+endif
+
+INCLUDE_CG?=n
+ifeq ($(INCLUDE_CG),y)
+DEFINES += -DAS_INCLUDE_CG
 endif
 
 STATIC?=n
@@ -51,7 +63,10 @@ LIB_NAME = as
 SRC_DIR = ./src
 BIN_DIR = ./bin
 LIBRARY = $(BIN_DIR)/lib$(LIB_NAME).$(LIB_EXT)
-SOURCES_INSIDE_SRC = common/solveActiveSet.c solveActiveSet_cg.c solveActiveSet_chol.c solveActiveSet_qr.c solveActiveSet_qr_naive.c common/setupWLS.c lib/chol_math.c lib/qr_updates.c lib/qr_wrapper.c lib/qr_solve/qr_solve.c lib/qr_solve/r8lib_min.c lib/sparse_math.c
+SOURCES_INSIDE_SRC = common/solveActiveSet.c solveActiveSet_chol.c solveActiveSet_qr.c solveActiveSet_qr_naive.c common/setupWLS.c lib/chol_math.c lib/qr_updates.c lib/qr_wrapper.c lib/qr_solve/qr_solve.c lib/qr_solve/r8lib_min.c lib/sparse_math.c
+ifeq ($(INCLUDE_CG),y)
+SOURCES_INSIDE_SRC += solveActiveSet_cg.c
+endif
 SOURCES = $(addprefix $(SRC_DIR)/, $(SOURCES_INSIDE_SRC))
 BINARIES = $(addprefix $(BIN_DIR)/, $(SOURCES_INSIDE_SRC:%.c=%.o))
 
@@ -79,7 +94,7 @@ perform_tests : tester
 	@echo QR_NAIVE: && ./$(TESTER) verify 0
 	@echo QR: && ./$(TESTER) verify 1
 	@echo CHOL: && ./$(TESTER) verify 2
-	@echo CG: && ./$(TESTER) verify 3
+	@echo CG, only representative if compiled with -DAS_INCLUDE_CG: && ./$(TESTER) verify 3
 tester : $(TESTER)
 library : $(LIBRARY)
 clean : cleaner
