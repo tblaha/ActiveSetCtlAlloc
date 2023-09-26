@@ -164,7 +164,8 @@ activeSetExitCode solveActiveSet_qr(
     backward_tri_solve((*n_free), R_ptr, c, q);
     
     for (i = 0; i < (*n_free); i++) {
-      if (q[i] != q[i]) {
+      //if (q[i] != q[i]) {
+      if (isnan(q[i])) {
         // break immediately with error
         nan_found = true;
         break;
@@ -284,7 +285,8 @@ activeSetExitCode solveActiveSet_qr(
         } else {
           us[i] += incr;
         }
-        if (us[i] != us[i]) {
+        //if (us[i] != us[i]) {
+        if (isnan(us[i])) {
           // nan found
           nan_found = true;
           break;

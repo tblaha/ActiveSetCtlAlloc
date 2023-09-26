@@ -16,7 +16,7 @@ void pprz_cholesky_float(num_t **out, num_t **in, num_t* inv_diag, int n)
         s += out[i][k] * out[j][k];
       }
       if (i == j) {
-        out[i][j] = sqrt(in[i][i] - s);
+        out[i][j] = sqrtf(in[i][i] - s);
         inv_diag[j] = (out[i][j] != 0) ? (1.0 / out[i][j]) : 0.0;
       } else {
         out[i][j] = inv_diag[j] * (in[i][j] - s);
@@ -104,7 +104,7 @@ void choladd(num_t** L, int nf, num_t* inv_diag, num_t** H, int* perm, int f)
         L21L21T += L[nf][j]*L[nf][j];
     }
 
-    L[nf][nf] = sqrt(H[perm[f]][perm[f]] - L21L21T);
+    L[nf][nf] = sqrtf(H[perm[f]][perm[f]] - L21L21T);
     inv_diag[nf] = 1.0 / L[nf][nf];
 }
 

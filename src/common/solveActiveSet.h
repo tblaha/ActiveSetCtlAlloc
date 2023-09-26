@@ -15,9 +15,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifdef __FAST_MATH__
-#error "Do not use -ffast-math, needed for protection against nan"
-#endif
+//#ifdef __FAST_MATH__
+//#error "Do not use -ffast-math, needed for protection against nan"
+//#endif
 
 #ifndef AS_N_U
 #error "AS_N_U must be defined."

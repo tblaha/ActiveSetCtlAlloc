@@ -352,7 +352,7 @@ num_t dnrm2 ( int n, num_t x[], int incx )
       ix = ix + incx;
     }
 
-    norm  = scale * sqrt ( ssq );
+    norm  = scale * sqrtf ( ssq );
   }
 
   return norm;
@@ -456,7 +456,7 @@ void dqrank ( num_t a[], int lda, int m, int n, num_t tol, int *kr,
 
   for ( j = 0; j < k; j++ )
   {
-    if ( fabs ( a[j+j*lda] ) <= tol * fabs ( a[0+0*lda] ) )
+    if ( fabsf ( a[j+j*lda] ) <= tol * fabsf ( a[0+0*lda] ) )
     {
       return;
     }
@@ -687,14 +687,14 @@ void dqrdc ( num_t a[], int lda, int n, int p, num_t qraux[], int jpvt[],
           {
             if ( qraux[j-1] != 0.0 )
             {
-              tt = 1.0 - pow ( fabs ( a[l-1+(j-1)*lda] ) / qraux[j-1], 2 );
+              tt = 1.0 - powf ( fabsf ( a[l-1+(j-1)*lda] ) / qraux[j-1], 2 );
               tt = r8_max ( tt, 0.0 );
               t = tt;
-              tt = 1.0 + 0.05 * tt * pow ( qraux[j-1] / work[j-1], 2 );
+              tt = 1.0 + 0.05 * tt * powf ( qraux[j-1] / work[j-1], 2 );
 
               if ( tt != 1.0 )
               {
-                qraux[j-1] = qraux[j-1] * sqrt ( t );
+                qraux[j-1] = qraux[j-1] * sqrtf ( t );
               }
               else
               {

@@ -60,13 +60,13 @@ void setupWLS_A(
         // estimate minimum gamma, and then use it, unless theta results in a 
         // higher value
         gamma_estimator(n_v, A2_ptr, cond_bound, gamma, &max_sig);
-        *gamma = (*gamma > sqrt(max_sig)*theta/max_diag) ? *gamma 
-        : sqrt(max_sig)*theta/max_diag;
+        *gamma = (*gamma > sqrtf(max_sig)*theta/max_diag) ? *gamma 
+        : sqrtf(max_sig)*theta/max_diag;
     } else {
         // bypass the gamma returned from the estimator, but use the max_sig
         num_t dummy;
         gamma_estimator(n_v, A2_ptr, 1., &dummy, &max_sig);
-        *gamma = sqrt(max_sig)*theta/max_diag;
+        *gamma = sqrtf(max_sig)*theta/max_diag;
     }
 
     // add sparse part to A (from actuator penalty)
@@ -119,13 +119,13 @@ void gamma_estimator(
         R = 0;
         for (int j=0; j<n; j++) {
             if (j != i)
-                R += fabs(A2[i][j]);
+                R += fabsf(A2[i][j]);
         }
         if (*max_sig < (A2[i][i]+R))
             *max_sig = A2[i][i]+R;
     }
 
-    *gamma = sqrt(*max_sig / cond_target);
+    *gamma = sqrtf(*max_sig / cond_target);
 }
 
 void cond_estimator(
@@ -142,7 +142,7 @@ void cond_estimator(
         R = 0;
         for (int j=0; j<d; j++) {
             if (j != i)
-                R += fabs(A2[i][j]);
+                R += fabsf(A2[i][j]);
         }
         *max_sig = (*max_sig < A2[i][i]+R) ? A2[i][i]+R : *max_sig;
     }

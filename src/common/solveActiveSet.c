@@ -24,7 +24,7 @@ activeSetAlgo solveActiveSet(activeSetAlgoChoice choice) {
         default:
             return &solveActiveSet_qr;
     }
-};
+}
 
 #ifdef AS_RECORD_COST
 num_t calc_cost(const num_t A_col[AS_N_C*AS_N_U], const num_t b[AS_N_C],

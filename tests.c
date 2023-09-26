@@ -120,8 +120,8 @@ static void executeSolution(
       normsq += diff*diff;
       normsq_gt += us_gt[j]*us_gt[j];
     }
-    *us_gt_norm = sqrt(normsq_gt);
-    *us_rel_error = sqrt(normsq); // IMPORTANT CHANGE --> no more division by normsq_gt to avoid nan's
+    *us_gt_norm = sqrtf(normsq_gt);
+    *us_rel_error = sqrtf(normsq); // IMPORTANT CHANGE --> no more division by normsq_gt to avoid nan's
 
     // verify by impact on reached pseudocontrol Delta v
     normsq = 0.0F;
@@ -134,8 +134,8 @@ static void executeSolution(
       normsq += diff*diff;
       normsq_gt += dv[j]*dv[j];
     }
-    *v_gt_norm = sqrt(normsq_gt);
-    *v_rel_error = sqrt(normsq/normsq_gt);
+    *v_gt_norm = sqrtf(normsq_gt);
+    *v_rel_error = sqrtf(normsq/normsq_gt);
   }
 }
 
@@ -171,7 +171,7 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
   //memset(Ws, 0, sizeof(int8_t)*AS_N_U);
 
   // global settings
-  //num_t theta = 1.5e-3 * sqrt(1e-4);  // works: 1.5e-3 * 1e0
+  //num_t theta = 1.5e-3 * sqrtf(1e-4);  // works: 1.5e-3 * 1e0
   num_t theta = 2.0e-9;
   num_t cond_bound = 4e5; // works: 4.45e5. Optimal 2.5e6 for nederdrone? 2.4e6 for hex?
 
@@ -291,7 +291,7 @@ static void main_solveActiveSet(int mode, activeSetAlgoChoice choice)
       for (int j=0; j<test_cases[idx].n_u; j++)
         perturbation += (us_algo_perturb[j] - us_algo[j])*(us_algo_perturb[j] - us_algo[j]);
       
-      perturbation = sqrt(perturbation); // / us_gt_norm[0]; IMPORTANT CHANGE, NO MORE division by gt norm
+      perturbation = sqrtf(perturbation); // / us_gt_norm[0]; IMPORTANT CHANGE, NO MORE division by gt norm
 
       max_perturb = (max_perturb < perturbation) ? perturbation  : max_perturb;
       avg_perturb += perturbation / N_CASES;

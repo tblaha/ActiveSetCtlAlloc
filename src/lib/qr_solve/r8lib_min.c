@@ -153,9 +153,9 @@ num_t r8mat_amax ( int m, int n, num_t a[] )
   {
     for ( i = 0; i < m; i++ )
     {
-      if ( value < fabs ( a[i+j*m] ) )
+      if ( value < fabsf ( a[i+j*m] ) )
       {
-        value = fabs ( a[i+j*m] );
+        value = fabsf ( a[i+j*m] );
       }
     }
   }

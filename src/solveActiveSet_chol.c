@@ -153,7 +153,8 @@ activeSetExitCode solveActiveSet_chol(
 
     for (i = 0; i < (*n_free); i++) {
       // check for nan according to IEEE 754 assuming -ffast-math is not passed
-      if (q[i] != q[i]) {
+      //if (q[i] != q[i]) {
+      if (isnan(q[i])) {
         // break immediately with error
         nan_found = true;
         break;
@@ -294,7 +295,8 @@ activeSetExitCode solveActiveSet_chol(
         } else {
           us[i] += incr;
         }
-        if (us[i] != us[i]) {
+        //if (us[i] != us[i]) {
+        if (isnan(us[i])) {
           // nan found
           nan_found = true;
           break;
