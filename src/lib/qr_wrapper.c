@@ -78,7 +78,9 @@ int dorgqr ( int m, int n, const num_t a[], num_t q[], num_t tau[])
   }
   num_t sqtau, isqtau, tsum;
   for (int i=0; i<n; i++) {
-    sqtau = sqrtf(tau[i]);
+    //sqtau = (tau[i] > 0.f) ? sqrtf(tau[i]) : 0.;
+    //isqtau = (sqtau > 1e-8f) ? 1.f/sqtau : 0.;
+    sqtau = sqrtf(tau[i]); //tau guaranteed to be non negative
     isqtau = 1/sqtau;
 
     for (int k=0; k<m; k++) {
